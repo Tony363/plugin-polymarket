@@ -1,6 +1,6 @@
-# Project Starter Tests
+# Plugin Polymarket Tests
 
-This document provides information about the testing approach for the Project Starter plugin.
+This document provides specific information about the testing approach for the Polymarket plugin.
 
 ## Test Structure
 
@@ -8,11 +8,9 @@ The project uses a standardized testing approach that leverages core test utilit
 
 ### Core Test Utilities
 
-The tests reuse core testing functionality from `@elizaos/core` through a set of utilities in the `__tests__/utils/core-test-utils.ts` file:
+The tests reuse core testing functionality from `@elizaos/core` through a set of utility functions:
 
 - `runCoreActionTests` - Validates action structure and functionality
-- `runCoreModelTests` - Tests model behavior with various parameters
-- `documentTestResult` - Records test results for debugging and documentation
 - `createMockRuntime` - Creates a standardized runtime for testing
 - `createMockMessage` - Creates test messages for action testing
 - `createMockState` - Creates test state objects
@@ -21,13 +19,9 @@ The tests reuse core testing functionality from `@elizaos/core` through a set of
 
 The test suite covers:
 
-1. **Actions** - Testing the HELLO_WORLD action and action utilities
-2. **Models** - Testing TEXT_SMALL and TEXT_LARGE model implementations
-3. **Plugin Structure** - Validating the overall plugin structure
-4. **Routes** - Testing API routes
-5. **Integration** - End-to-end plugin functionality
-6. **File Structure** - Ensuring proper package organization
-7. **Configuration** - Testing configuration handling
+1. **Actions Tests** - Testing the `READ_POLYMARKET_MARKETS` and `GET_POLYMARKET_MARKET_BY_ID` actions
+2. **Service Tests** - Testing the `GammaService` functionality for API interactions
+3. **Plugin Structure** - Validating the overall plugin configuration
 
 ## Running Tests
 
@@ -45,91 +39,95 @@ npm test -- actions.test.ts
 npm test -- --watch
 ```
 
-## Test Implementation
+## Polymarket-Specific Tests
 
 ### Action Tests
 
-The action tests use the core action test utilities to validate:
+Tests for the Polymarket actions validate:
 
-- Action structure compliance
-- Action validation functionality
-- Action handler behavior
-- Action formatting utilities
+- Market list retrieval with various filter parameters
+- Single market retrieval by ID
+- Error handling for invalid inputs or API failures
+- Response formatting for both actions
 
-Example from `actions.test.ts`:
-
-```typescript
-// Run core tests on all plugin actions
-it('should pass core action tests', () => {
-  if (plugin.actions) {
-    const coreTestResults = runCoreActionTests(plugin.actions);
-    expect(coreTestResults).toBeDefined();
-    // ...
-  }
-});
-```
-
-### Model Tests
-
-The model tests validate:
-
-- Model interface compliance
-- Handling of various parameters
-- Response formatting
-- Error handling
-
-Example from `models.test.ts`:
+Example test case structure:
 
 ```typescript
-it('should run core tests for TEXT_SMALL model', async () => {
-  if (plugin.models && plugin.models[ModelType.TEXT_SMALL]) {
-    const results = await runCoreModelTests(
-      ModelType.TEXT_SMALL,
-      plugin.models[ModelType.TEXT_SMALL]
+describe('readMarketsAction', () => {
+  it('should validate action structure', () => {
+    expect(readMarketsAction.name).toBe('READ_POLYMARKET_MARKETS');
+    expect(readMarketsAction.handler).toBeDefined();
+    expect(readMarketsAction.validate).toBeDefined();
+  });
+  
+  it('should retrieve and format active markets', async () => {
+    const mockRuntime = createMockRuntime();
+    const mockMessage = createMockMessage({
+      text: 'Show me prediction markets'
+    });
+    const mockState = createMockState();
+    
+    const result = await readMarketsAction.handler(
+      mockRuntime,
+      mockMessage,
+      mockState,
+      {},
+      mockCallback,
+      []
     );
-    // ...
-  }
+    
+    expect(result).toContain('Here are the top');
+  });
 });
 ```
+
+### GammaService Tests
+
+Tests for the GammaService cover:
+
+- API URL construction with various parameters
+- Market data transformation 
+- Pagination handling
+- Error handling for API failures
+
+Example test case structure:
+
+```typescript
+describe('GammaService', () => {
+  it('should correctly build API URLs', () => {
+    const url = GammaService._buildApiUrl({
+      active: true,
+      limit: 10,
+      offset: 0
+    });
+    expect(url).toContain('active=true');
+    expect(url).toContain('limit=10');
+  });
+  
+  it('should transform raw market data', () => {
+    const rawData = { /* mock data */ };
+    const transformed = GammaService._transformMarketData(rawData);
+    expect(transformed.id).toBeDefined();
+    expect(transformed.question).toBeDefined();
+    expect(transformed.outcomes).toBeInstanceOf(Array);
+  });
+});
+```
+
+## Mocking Strategy
+
+When testing the Polymarket plugin, the following mocking approaches are used:
+
+1. **API Responses** - Mock responses from the Polymarket Gamma API
+2. **Runtime Services** - Mock ElizaOS runtime for action testing
+3. **User Inputs** - Simulated user messages with various queries
 
 ## Writing New Tests
 
-When adding new features, follow these guidelines:
+When adding new features to the Polymarket plugin, follow these guidelines:
 
-1. Use the core test utilities where possible
-2. Structure tests in a consistent manner
-3. Document test results using `documentTestResult`
-4. Use the `createMockRuntime` for standardized testing
-
-Example:
-
-```typescript
-it('should test my new feature', async () => {
-  const runtime = createMockRuntime();
-  const message = createMockMessage('Test message');
-  const state = createMockState();
-
-  const result = await myFeature(runtime, message, state);
-
-  expect(result).toBeTruthy();
-  documentTestResult('My feature test', result);
-});
-```
-
-## Logs and Documentation
-
-All tests use the Eliza logger for consistent reporting:
-
-```typescript
-logger.info(`TEST: ${testName}`);
-logger.error(`ERROR: ${error.message}`);
-```
-
-## Debugging
-
-To view detailed logs during test runs:
-
-```bash
-# Run with detailed logging
-DEBUG=eliza:* npm test
-```
+1. Create dedicated tests for new actions or services
+2. Mock any external API calls
+3. Test both successful and error scenarios
+4. Verify correct market data formatting
+5. Ensure proper handling of user queries with different search terms
