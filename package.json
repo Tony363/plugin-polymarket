@@ -30,6 +30,7 @@
   "dependencies": {
     "@elizaos/cli": "beta",
     "@elizaos/core": "beta",
+    "@elizaos/plugin-anthropic": "^1.0.0-beta.54",
     "@elizaos/plugin-bootstrap": "^1.0.0-beta.49",
     "@elizaos/plugin-openai": "beta",
     "@elizaos/plugin-sql": "beta",
